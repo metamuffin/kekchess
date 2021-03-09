@@ -17,17 +17,13 @@ dump
 # get all possible moves for a tile (use algebraic notation)
 possible_moves <tile>
 # sample output:
-# OK
-# a2-a3
-# b1-c3
-# b1-a3
-# b2-b3
+# OK a2-a3 b1-c3 b1-a3 b2-b3
 
 # perform a move. outputs either 'OK' or a error message
 move <move>
 
-# make the engine perform a move. outputs either 'OK <move>' or a error message
-move_algo (random|minimax)
+# make the engine calculate a move and also do it if specified. outputs either 'OK <move>' or a error message
+algo (random|minimax) <do move: true|false>
 ```
 
 ## Move serialization

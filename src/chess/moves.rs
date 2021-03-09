@@ -94,12 +94,25 @@ impl Game {
         return moves;
     }
 
-    pub fn make_move_unchecked(&mut self, m: Move) {
-        match m {
+    pub fn make_move(&mut self, m: &Move) -> Result<(), String> {
+        let possible_moves = self.get_possible_moves(&m.get_source_coord());
+        if !possible_moves.iter().any(|mc| *mc == *m) {
+            return Err(format!(
+                "move is not part of the set of all possible moves."
+            ));
+        }
+        self.make_move_unchecked(m);
+        Ok(())
+    }
+
+    pub fn make_move_unchecked(&mut self, m: &Move) {
+        let capture = match m {
             Move::Basic(from, to) => {
                 let tile = self.board[from.index()];
+                let capture = self.board[to.index()].is_some();
                 self.board[to.index()] = tile;
                 self.board[from.index()] = None;
+                capture
             }
             Move::Castle(king_from, king_to) => {
                 // TODO castling
@@ -112,7 +125,11 @@ impl Game {
             Move::PawnPromotion(from, to, a) => {
                 todo!();
             }
+        };
+        if !capture {
+            self.moves_since_capture += 1;
         }
+        self.move_count += 1;
     }
 
     pub fn can_capture_tile(&self, source: &Coord, target: &Coord) -> bool {
@@ -153,6 +170,20 @@ impl Color {
         match self {
             Color::Black => Coord(0, -1),
             Color::White => Coord(0, 1),
+        }
+    }
+}
+
+impl Move {
+    pub fn get_source_coord(&self) -> Coord {
+        match self {
+            Move::Basic(a, _) => a.clone(),
+            Move::Castle(color, side) => match color {
+                Color::White => Coord(4, 0),
+                Color::Black => Coord(4, 7),
+            },
+            Move::EnPassent(a, _) => a.clone(),
+            Move::PawnPromotion(a, _, _) => a.clone(),
         }
     }
 }

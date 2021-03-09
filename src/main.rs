@@ -3,6 +3,8 @@
 
 mod chess;
 mod interactive;
+mod algos;
+
 use chess::{Coord, Game};
 
 fn main() {

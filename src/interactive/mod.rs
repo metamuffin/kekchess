@@ -1,5 +1,8 @@
 use std::io::{BufRead, Read};
 
+use algos::algo_move;
+
+use crate::algos;
 use crate::chess::{Coord, Game};
 
 pub struct InteractiveMode {
@@ -30,11 +33,11 @@ impl InteractiveMode {
                     println!("OK {}", self.game.to_fen())
                 }
                 "possible_moves" => {
-                    if spl.len() < 2 {
-                        println!("ERROR: no argument")
+                    if spl.len() != 2 {
+                        println!("ERROR: argument count is incorrect")
                     } else {
                         match Coord::from_algebraic(spl[1]) {
-                            Err(msg) => return println!("ERROR: {}", msg),
+                            Err(msg) => println!("ERROR: {}", msg),
                             Ok(c) => {
                                 let moves = self.game.get_possible_moves(&c);
                                 println!("OK");
@@ -48,8 +51,28 @@ impl InteractiveMode {
                 "move" => {
                     todo!()
                 }
-                "move_algo" => {
-                    todo!()
+                "algo" => {
+                    if spl.len() != 3 {
+                        println!("ERROR: argument count is incorrect")
+                    } else {
+                        match algo_move(spl[1], &self.game) {
+                            Err(msg) => println!("ERROR: {}", msg),
+                            Ok(m) => {
+                                match spl[2] {
+                                    "false" => {}
+                                    "true" => {
+                                        if let Err(msg) = self.game.make_move(&m) {
+                                            println!("WARN error while applying move: {}", msg);
+                                        }
+                                    }
+                                    _ => {
+                                        println!("WARN 'do move' argument invalid")
+                                    }
+                                }
+                                println!("OK {}", m)
+                            }
+                        }
+                    }
                 }
                 "quit" => {
                     break;

@@ -22,13 +22,13 @@ pub enum Color {
 pub struct Tile(Color, Piece);
 
 // x file, y rank
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Coord(pub i8, pub i8);
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Move {
     Basic(Coord, Coord),
-    Castle(bool, bool),
+    Castle(Color, bool),
     EnPassent(Coord, Coord),
     PawnPromotion(Coord, Coord, Piece),
 }
