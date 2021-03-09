@@ -1,6 +1,6 @@
+pub mod coord;
 pub mod display;
 pub mod fen;
-pub mod helper;
 pub mod moves;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -22,14 +22,15 @@ pub enum Color {
 pub struct Tile(Color, Piece);
 
 // x file, y rank
-pub type Coord = usize;
-pub type CoordOff = isize;
+#[derive(Debug, Clone)]
+pub struct Coord(pub i8, pub i8);
 
 #[derive(Debug)]
 pub enum Move {
     Basic(Coord, Coord),
     Castle(Coord, Coord),
     EnPassent(Coord, Coord),
+    PawnPromotion(Coord, Coord, Piece),
 }
 
 #[derive(Debug)]

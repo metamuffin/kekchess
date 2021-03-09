@@ -65,7 +65,7 @@ impl Game {
                 }
                 3 => {
                     if field != "-" {
-                        g.en_passent_target = Some(coord_from_algebraic(field)?)
+                        g.en_passent_target = Some(Coord::from_algebraic(field)?)
                     }
                 }
                 4 => {
@@ -139,41 +139,43 @@ impl Tile {
     }
 }
 
-pub fn coord_from_algebraic(s: &str) -> Result<Coord, String> {
-    if s.len() != 2 {
-        return Err(format!("Algebraic Notation has invalid length: {:?}", s));
+impl Coord {
+    pub fn from_algebraic(s: &str) -> Result<Coord, String> {
+        if s.len() != 2 {
+            return Err(format!("Algebraic Notation has invalid length: {:?}", s));
+        }
+        let x = match s.chars().nth(0).unwrap() {
+            'a' => 0,
+            'b' => 1,
+            'c' => 2,
+            'd' => 3,
+            'e' => 4,
+            'f' => 5,
+            'g' => 6,
+            'h' => 7,
+            _ => {
+                return Err(format!(
+                    "Algebraic Notation contains invalid rank letter: '{}'",
+                    s
+                ))
+            }
+        };
+        let y = match s.chars().nth(1).unwrap() {
+            '1' => 0,
+            '2' => 1,
+            '3' => 2,
+            '4' => 3,
+            '5' => 4,
+            '6' => 5,
+            '7' => 6,
+            '8' => 7,
+            _ => {
+                return Err(format!(
+                    "Algebraic Notation contains invalid file number: '{}'",
+                    s
+                ))
+            }
+        };
+        return Ok(Coord(x, y));
     }
-    let x = match s.chars().nth(0).unwrap() {
-        'a' => 0,
-        'b' => 1,
-        'c' => 2,
-        'd' => 3,
-        'e' => 4,
-        'f' => 5,
-        'g' => 6,
-        'h' => 7,
-        _ => {
-            return Err(format!(
-                "Algebraic Notation contains invalid rank letter: '{}'",
-                s
-            ))
-        }
-    };
-    let y = match s.chars().nth(1).unwrap() {
-        '1' => 0,
-        '2' => 1,
-        '3' => 2,
-        '4' => 3,
-        '5' => 4,
-        '6' => 5,
-        '7' => 6,
-        '8' => 7,
-        _ => {
-            return Err(format!(
-                "Algebraic Notation contains invalid file number: '{}'",
-                s
-            ))
-        }
-    };
-    return Ok(y * 8 + x);
 }

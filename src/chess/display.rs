@@ -1,8 +1,5 @@
-use super::{
-    helper::{get_file, get_rank},
-    Move,
-};
 use super::{Color, Coord, Game};
+use super::{Move, Piece};
 use std::fmt::Write;
 
 impl std::fmt::Display for Game {
@@ -45,28 +42,41 @@ impl std::fmt::Display for Move {
         f.write_fmt(format_args!(
             "{}",
             match self {
-                Move::Basic(from, to) => format!(
-                    "{} -> {}",
-                    coord_to_algebraic(*from),
-                    coord_to_algebraic(*to)
-                ),
-                Move::Castle(from, to) => format!(
-                    "Castle king from {} to {}",
-                    coord_to_algebraic(*from),
-                    coord_to_algebraic(*to)
-                ),
-                Move::EnPassent(from, to) => format!(
-                    "En passent from {} to {}",
-                    coord_to_algebraic(*from),
-                    coord_to_algebraic(*to)
-                ),
+                Move::Basic(from, to) => format!("{} -> {}", from, to),
+                Move::Castle(from, to) => format!("Castle king from {} to {}", from, to),
+                Move::EnPassent(from, to) => format!("En passent from {} to {}", from, to),
+                Move::PawnPromotion(from, to, a) => {
+                    format!("{} -> {}, pawn promoted to {}", from, to, a)
+                }
             }
         ))
     }
 }
 
-pub fn coord_to_algebraic(c: Coord) -> String {
-    let files = &['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-    let ranks = &['1', '2', '3', '4', '5', '6', '7', '8'];
-    return format!("{}{}", files[get_file(c)], ranks[get_rank(c)]);
+impl std::fmt::Display for Piece {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!(
+            "{}",
+            match self {
+                Piece::King => "king",
+                Piece::Queen => "queen",
+                Piece::Knight => "knight",
+                Piece::Bishop => "bishop",
+                Piece::Rook => "rook",
+                Piece::Pawn => "pawn",
+            }
+        ))
+    }
+}
+
+impl std::fmt::Display for Coord {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let files = &['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+        let ranks = &['1', '2', '3', '4', '5', '6', '7', '8'];
+        f.write_fmt(format_args!(
+            "{}{}",
+            files[self.file_index()],
+            ranks[self.rank_index()]
+        ))
+    }
 }
