@@ -28,7 +28,7 @@ pub struct Coord(pub i8, pub i8);
 #[derive(Debug)]
 pub enum Move {
     Basic(Coord, Coord),
-    Castle(Coord, Coord),
+    Castle(bool, bool),
     EnPassent(Coord, Coord),
     PawnPromotion(Coord, Coord, Piece),
 }

@@ -1,4 +1,4 @@
-use super::{Color, Coord, Game, Piece, Tile};
+use super::{Color, Coord, Game, Move, Piece, Tile};
 
 impl Game {
     pub fn from_fen(fen: &str) -> Result<Self, String> {
@@ -14,7 +14,11 @@ impl Game {
         for (fi, field) in fen.split(" ").enumerate() {
             match fi {
                 0 => {
-                    for (rank, rr) in field.split("/").enumerate().map(|(rank, v)| (7 - rank, v)) {
+                    for (rank, rr) in field
+                        .split("/")
+                        .enumerate()
+                        .map(|(rank, v)| (7 - rank as i8, v))
+                    {
                         let mut x = 0;
                         for c in rr.chars() {
                             match c {
@@ -45,7 +49,7 @@ impl Game {
                     "w" => g.active_color = Color::White,
                     _ => {
                         return Err(format!(
-                            "FEN field 'active color' contains unrecognised color: '{:?}'",
+                            "FEN field 'active color' contains unrecognised color: {:?}",
                             field
                         ))
                     }
@@ -58,7 +62,7 @@ impl Game {
                                 'Q' => 1,
                                 'k' => 2,
                                 'q' => 3,
-                                _ => return Err(format!("FEN field 'castling availibility' contains invalid character: '{:?}'", c))
+                                _ => return Err(format!("FEN field 'castling availibility' contains invalid character: {:?}", c))
                             };
                             g.castling_avail[ca] = true;
                         }
@@ -74,7 +78,7 @@ impl Game {
                         g.moves_since_capture = n
                     } else {
                         return Err(format!(
-                            "FEN field 'halfmove clock' contains invalid number: '{:?}'",
+                            "FEN field 'halfmove clock' contains invalid number: {:?}",
                             field
                         ));
                     }
@@ -84,20 +88,88 @@ impl Game {
                         g.move_count = n
                     } else {
                         return Err(format!(
-                            "FEN field 'fullmove clock' contains invalid number: '{:?}'",
+                            "FEN field 'fullmove clock' contains invalid number: {:?}",
                             field
                         ));
                     }
                 }
                 _ => {
                     return Err(format!(
-                        "FEN has to many fields. '{:?}' was not expected.",
+                        "FEN has too many fields. {:?} was not expected.",
                         field
                     ))
                 }
             }
         }
         Ok(g)
+    }
+    pub fn to_fen(&self) -> String {
+        let mut output = String::new();
+        let mut empty_count: Option<usize> = None;
+        for rank in 0..8 {
+            if let Some(n) = empty_count {
+                output += format!("{}", n).as_str();
+                empty_count = None
+            }
+            if rank != 0 {
+                output += "/"
+            }
+            for file in 0..8 {
+                let tile = self.board[Coord(file, rank).index()];
+                match tile {
+                    Some(t) => {
+                        if let Some(n) = empty_count {
+                            output += format!("{}", n).as_str();
+                            empty_count = None
+                        }
+                        output += format!("{}", t.as_fen_char()).as_str();
+                    }
+                    None => match empty_count {
+                        None => empty_count = Some(1),
+                        Some(n) => empty_count = Some(n + 1),
+                    },
+                }
+            }
+        }
+        output += " ";
+        output += format!("{}", self.active_color.as_fen_color()).as_str();
+        output += " ";
+        {
+            let mut r = String::from("");
+            if self.castling_avail[0] {
+                r += "K";
+            }
+            if self.castling_avail[1] {
+                r += "Q";
+            }
+            if self.castling_avail[2] {
+                r += "k";
+            }
+            if self.castling_avail[3] {
+                r += "q";
+            }
+            if r.len() == 0 {
+                r += "-"
+            }
+            output += r.as_str();
+        }
+        output += " ";
+        let temp = match &self.en_passent_target {
+            None => String::from("-"),
+            Some(t) => t.to_algebraic(),
+        };
+        output += temp.as_str();
+        output += format!(" {} {}", self.moves_since_capture, self.move_count).as_str();
+        return output;
+    }
+}
+
+impl Color {
+    pub fn as_fen_color(&self) -> char {
+        match self {
+            Color::Black => 'b',
+            Color::White => 'w',
+        }
     }
 }
 
@@ -121,7 +193,7 @@ impl Tile {
 
             'P' => Tile(Color::White, Piece::Pawn),
             'p' => Tile(Color::Black, Piece::Pawn),
-            _ => return Err(format!("FEN tile character is invalid: '{:?}'", s)),
+            _ => return Err(format!("FEN tile character is invalid: {:?}", s)),
         })
     }
     pub fn as_fen_char(&self) -> char {
@@ -156,7 +228,7 @@ impl Coord {
             'h' => 7,
             _ => {
                 return Err(format!(
-                    "Algebraic Notation contains invalid rank letter: '{}'",
+                    "Algebraic Notation contains invalid rank letter: {:?}",
                     s
                 ))
             }
@@ -172,11 +244,33 @@ impl Coord {
             '8' => 7,
             _ => {
                 return Err(format!(
-                    "Algebraic Notation contains invalid file number: '{}'",
+                    "Algebraic Notation contains invalid file number: {:?}",
                     s
                 ))
             }
         };
         return Ok(Coord(x, y));
+    }
+    pub fn to_algebraic(&self) -> String {
+        let files = &['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+        let ranks = &['1', '2', '3', '4', '5', '6', '7', '8'];
+        return format!("{}{}", files[self.file_index()], ranks[self.rank_index()]);
+    }
+}
+
+impl Move {
+    pub fn serialize(&self) -> String {
+        format!(
+            "{}",
+            match self {
+                Move::Basic(from, to) => format!("b,{}-{}", from, to),
+                Move::Castle(color, side) => format!("c,{},{}", color, side),
+                Move::EnPassent(from, to) => format!("e,{}-{}", from, to),
+                Move::PawnPromotion(from, to, a) => format!("p,{}-{},{}", from, to, a),
+            }
+        )
+    }
+    pub fn deserialize(s: &str) -> Self {
+        todo!()
     }
 }

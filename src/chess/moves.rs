@@ -74,10 +74,10 @@ impl Game {
             }
             Piece::Pawn => {
                 basic_moves_targets.push(c.offset(&tile.0.get_direction()));
-                if c.1 == 7 && tile.0 == Color::White {
+                if c.1 == 1 && tile.0 == Color::White {
                     basic_moves_targets.push(c.offset(&tile.0.get_direction().mul(2)));
                 }
-                if c.1 == 1 && tile.0 == Color::Black {
+                if c.1 == 7 && tile.0 == Color::Black {
                     basic_moves_targets.push(c.offset(&tile.0.get_direction().mul(2)));
                 }
                 // TODO en passent
