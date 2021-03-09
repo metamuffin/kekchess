@@ -25,6 +25,21 @@ pub const KNIGHT_MOVES: &[Coord; 8] = &[
 ];
 
 impl Game {
+    pub fn get_all_possible_moves(&self) -> Vec<Move> {
+        let mut moves = vec![];
+        for file in 0..8 {
+            for rank in 0..8 {
+                let c = Coord(file, rank);
+                if let Some(tile) = self.board[c.index()] {
+                    if tile.0 == self.active_color {
+                        moves.append(&mut self.get_possible_moves(&c))
+                    }
+                }
+            }
+        }
+        return moves;
+    }
+
     pub fn get_possible_moves(&self, c: &Coord) -> Vec<Move> {
         let tile = self.board[c.index()]
             .expect("Internal error. tried to get moves of a tile that does not exist");
@@ -59,16 +74,15 @@ impl Game {
             }
             Piece::Pawn => {
                 basic_moves_targets.push(c.offset(&tile.0.get_direction()));
-                if c.1 == 1 || tile.0 == Color::White {
+                if c.1 == 7 && tile.0 == Color::White {
                     basic_moves_targets.push(c.offset(&tile.0.get_direction().mul(2)));
                 }
-                if c.1 == 7 || tile.0 == Color::Black {
+                if c.1 == 1 && tile.0 == Color::Black {
                     basic_moves_targets.push(c.offset(&tile.0.get_direction().mul(2)));
                 }
                 // TODO en passent
             }
         }
-
         let mut basic_moves = basic_moves_targets
             .iter()
             .filter(|t| t.is_valid())
@@ -102,18 +116,33 @@ impl Game {
     }
 
     pub fn can_capture_tile(&self, source: &Coord, target: &Coord) -> bool {
-        return true;
+        let source_tile =
+            self.board[source.index()].expect("Nothing is not able to capture anything");
+        let target_tile = self.board[target.index()];
+        return match target_tile {
+            None => true,
+            Some(t) => {
+                if t.0 == source_tile.0 || t.1 == Piece::King {
+                    return false;
+                }
+                // TODO
+                return true;
+            }
+        };
     }
 
     pub fn get_consecutive_capture_tiles(&self, start: &Coord, direction: &Coord) -> Vec<Coord> {
         let mut cursor = start.clone();
         let mut c = vec![];
-        while cursor.is_valid() {
+        loop {
             cursor.offset_in_place(direction);
+            c.push(cursor.clone());
+            if !cursor.is_valid() {
+                break;
+            }
             if let Some(_) = self.board[cursor.index()] {
                 break;
             }
-            c.push(cursor.clone());
         }
         return c;
     }

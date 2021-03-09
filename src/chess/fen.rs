@@ -14,7 +14,7 @@ impl Game {
         for (fi, field) in fen.split(" ").enumerate() {
             match fi {
                 0 => {
-                    for (rank, rr) in field.split("/").enumerate() {
+                    for (rank, rr) in field.split("/").enumerate().map(|(rank, v)| (7 - rank, v)) {
                         let mut x = 0;
                         for c in rr.chars() {
                             match c {
@@ -27,12 +27,13 @@ impl Game {
                                 '7' => x += 7,
                                 '8' => x += 8,
                                 _ => {
-                                    if x > 8 || rank > 8 {
+                                    if x > 8 || rank < 0 {
                                         return Err(format!(
                                             "FEN field 'pieces' uses a board thats bigger than 8x8"
                                         ));
                                     }
-                                    g.board[rank * 8 + x] = Some(Tile::from_fen_char(c)?);
+                                    g.board[Coord(x, rank as i8).index()] =
+                                        Some(Tile::from_fen_char(c)?);
                                     x += 1;
                                 }
                             }

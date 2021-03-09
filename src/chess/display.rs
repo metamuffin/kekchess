@@ -5,7 +5,7 @@ use std::fmt::Write;
 impl std::fmt::Display for Game {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut board = String::new();
-        for y in 0..8 {
+        for y in (0..8).rev() {
             for x in 0..8 {
                 board
                     .write_char(match self.board[y * 8 + x] {
