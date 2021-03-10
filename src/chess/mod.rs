@@ -18,7 +18,16 @@ pub enum Color {
     Black,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq)]
+pub enum GameState {
+    Normal,
+    Draw,
+    Stalemate,
+    Check(Color),
+    Checkmate(Color),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Tile(Color, Piece);
 
 // x file, y rank
@@ -33,7 +42,7 @@ pub enum Move {
     PawnPromotion(Coord, Coord, Piece),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Game {
     board: [Option<Tile>; 64],
     active_color: Color,

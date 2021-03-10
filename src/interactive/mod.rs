@@ -3,7 +3,7 @@ use std::io::{BufRead, Read};
 use algos::algo_move;
 
 use crate::algos;
-use crate::chess::{Coord, Game};
+use crate::chess::{Coord, Game, GameState, Move};
 
 pub struct InteractiveMode {
     game: Game,
@@ -16,6 +16,25 @@ impl InteractiveMode {
                 .unwrap(),
         }
     }
+
+    pub fn log_state(&self, state: GameState) {
+        match state {
+            GameState::Check(c) => {
+                println!("INFO {} is in check", c)
+            }
+            GameState::Checkmate(c) => {
+                println!("INFO game ended. checkmate for {}", c)
+            }
+            GameState::Stalemate => {
+                println!("INFO game ended. stalemate")
+            }
+            GameState::Draw => {
+                println!("INFO game ended. draw.")
+            }
+            GameState::Normal => {}
+        }
+    }
+
     pub fn launch(&mut self) {
         let stdin = std::io::stdin();
         for line_r in stdin.lock().lines() {
@@ -31,6 +50,9 @@ impl InteractiveMode {
                 },
                 "dump" => {
                     println!("OK {}", self.game.to_fen())
+                }
+                "dump_debug" => {
+                    println!("{}\nhttps://lichess.org/editor/{}\nOK",self.game,self.game.to_fen().replace(" ", "_"))
                 }
                 "possible_moves" => {
                     if spl.len() != 2 {
@@ -48,8 +70,25 @@ impl InteractiveMode {
                         }
                     }
                 }
+                "all_possible_moves" => {
+                    let moves = self.game.get_all_possible_moves();
+                    println!("OK");
+                    for m in moves {
+                        println!("{}", m.serialize());
+                    }
+                }
                 "move" => {
-                    todo!()
+                    if spl.len() != 2 {
+                        println!("ERROR: argument count is incorrect")
+                    } else {
+                        let m = Move::deserialize(spl[1]);
+                        match self.game.make_move(&m) {
+                            Err(msg) => {
+                                println!("WARN while applying move: {}", msg)
+                            }
+                            Ok(state) => self.log_state(state),
+                        }
+                    }
                 }
                 "algo" => {
                     if spl.len() != 3 {
@@ -60,11 +99,12 @@ impl InteractiveMode {
                             Ok(m) => {
                                 match spl[2] {
                                     "false" => {}
-                                    "true" => {
-                                        if let Err(msg) = self.game.make_move(&m) {
-                                            println!("WARN error while applying move: {}", msg);
+                                    "true" => match self.game.make_move(&m) {
+                                        Err(msg) => {
+                                            println!("WARN while applying move: {}", msg)
                                         }
-                                    }
+                                        Ok(state) => self.log_state(state),
+                                    },
                                     _ => {
                                         println!("WARN 'do move' argument invalid")
                                     }

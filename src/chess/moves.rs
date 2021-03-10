@@ -1,4 +1,4 @@
-use super::{Color, Coord, Game, Move, Piece};
+use super::{Color, Coord, Game, GameState, Move, Piece, Tile};
 
 pub const BOARD_DIRECTIONS: &[Coord; 4] = &[Coord(0, 1), Coord(0, -1), Coord(1, 0), Coord(-1, 0)];
 pub const BOARD_DIRECTIONS_DIAGONAL: &[Coord; 8] = &[
@@ -40,9 +40,35 @@ impl Game {
         return moves;
     }
 
+    pub fn get_all_possible_moves_unchecked(&self) -> Vec<Move> {
+        let mut moves = vec![];
+        for file in 0..8 {
+            for rank in 0..8 {
+                let c = Coord(file, rank);
+                if let Some(tile) = self.board[c.index()] {
+                    if tile.0 == self.active_color {
+                        moves.append(&mut self.get_possible_moves_unchecked(&c))
+                    }
+                }
+            }
+        }
+        return moves;
+    }
+
     pub fn get_possible_moves(&self, c: &Coord) -> Vec<Move> {
-        let tile = self.board[c.index()]
-            .expect("Internal error. tried to get moves of a tile that does not exist");
+        return self
+            .get_possible_moves_unchecked(c)
+            .into_iter()
+            // .inspect(|m| println!("{} {}", self.move_results_in_check(m), m))
+            .filter(|m| !self.move_results_in_check(m))
+            .collect::<Vec<Move>>();
+    }
+
+    pub fn get_possible_moves_unchecked(&self, c: &Coord) -> Vec<Move> {
+        let tile = match self.board[c.index()] {
+            Some(t) => t,
+            None => return vec![],
+        };
         let mut moves: Vec<Move> = vec![];
         let mut basic_moves_targets: Vec<Coord> = vec![];
 
@@ -94,7 +120,16 @@ impl Game {
         return moves;
     }
 
-    pub fn make_move(&mut self, m: &Move) -> Result<(), String> {
+    pub fn move_results_in_check(&self, m: &Move) -> bool {
+        let mut branch = self.clone();
+        branch.make_move_unchecked(m);
+        return branch.is_check().is_some();
+    }
+
+    pub fn make_move(&mut self, m: &Move) -> Result<GameState, String> {
+        if self.move_results_in_check(m) {
+            return Err(format!("move will result in check"));
+        }
         let possible_moves = self.get_possible_moves(&m.get_source_coord());
         if !possible_moves.iter().any(|mc| *mc == *m) {
             return Err(format!(
@@ -102,7 +137,7 @@ impl Game {
             ));
         }
         self.make_move_unchecked(m);
-        Ok(())
+        Ok(self.state())
     }
 
     pub fn make_move_unchecked(&mut self, m: &Move) {
@@ -126,10 +161,16 @@ impl Game {
                 todo!();
             }
         };
-        if !capture {
-            self.moves_since_capture += 1;
+        if capture {
+            self.moves_since_capture = 0;
         }
-        self.move_count += 1;
+        if self.active_color == Color::White {
+            self.move_count += 1;
+            if !capture {
+                self.moves_since_capture += 1;
+            }
+        }
+        self.active_color = self.active_color.opponent();
     }
 
     pub fn can_capture_tile(&self, source: &Coord, target: &Coord) -> bool {
@@ -163,6 +204,44 @@ impl Game {
         }
         return c;
     }
+
+    pub fn state(&self) -> GameState {
+        let check_now = self.is_check();
+        let check_next = self
+            .get_all_possible_moves()
+            .iter()
+            .map(|m| {
+                let mut branch = self.clone();
+                branch.make_move_unchecked(m);
+                branch.is_check()
+            })
+            .any(|a| a.contains(&self.active_color));
+
+        return match (check_now.is_some(), check_next) {
+            (false, true) => GameState::Stalemate,
+            (true, true) => GameState::Checkmate(self.active_color),
+            (true, false) => GameState::Check(check_now.unwrap()),
+            (false, false) => GameState::Normal,
+        };
+    }
+
+    pub fn is_check(&self) -> Option<Color> {
+        for col in &[Color::White, Color::Black] {
+            let check = self.get_all_possible_moves_unchecked().iter().any(|m| {
+                match m.get_capture_target() {
+                    None => false,
+                    Some(v) => match self.board[v.index()] {
+                        Some(t) => t == Tile(col.clone(), Piece::King),
+                        None => false,
+                    },
+                }
+            });
+            if check {
+                return Some(col.clone());
+            }
+        }
+        None
+    }
 }
 
 impl Color {
@@ -170,6 +249,12 @@ impl Color {
         match self {
             Color::Black => Coord(0, -1),
             Color::White => Coord(0, 1),
+        }
+    }
+    pub fn opponent(&self) -> Self {
+        match self {
+            Color::Black => Color::White,
+            Color::White => Color::Black,
         }
     }
 }
@@ -184,6 +269,14 @@ impl Move {
             },
             Move::EnPassent(a, _) => a.clone(),
             Move::PawnPromotion(a, _, _) => a.clone(),
+        }
+    }
+    pub fn get_capture_target(&self) -> Option<Coord> {
+        match self {
+            Move::Basic(_, a) => Some(a.clone()),
+            Move::Castle(_, _) => None,
+            Move::EnPassent(_, a) => Some(a.clone()),
+            Move::PawnPromotion(_, a, _) => Some(a.clone()),
         }
     }
 }

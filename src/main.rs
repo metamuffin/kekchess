@@ -1,9 +1,10 @@
 #![feature(exclusive_range_pattern)]
+#![feature(option_result_contains)]
 #![allow(dead_code, unused_variables, unused_imports)]
 
+mod algos;
 mod chess;
 mod interactive;
-mod algos;
 
 use chess::{Coord, Game};
 

@@ -14,6 +14,9 @@ load <fen>
 # output the current state in fen
 dump
 
+# output the current state graphically and a link to the lichess editor for the current state
+dump_debug
+
 # get all possible moves for a tile (use algebraic notation)
 possible_moves <tile>
 # sample output:
